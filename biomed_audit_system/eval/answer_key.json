@@ -1,0 +1,63 @@
+{
+  "_note": "System-level ground truth per fixture. Each planted issue is expected to appear in the combined report from whichever checker owns its area. Severities are the primary expectation; the harness scores rule-id coverage and reports severity agreement separately. Controls expect no Critical/Important findings (a Minor is tolerated). Do not feed this file to the checkers.",
+  "matching_granularity": "rule_id per fixture",
+  "fixtures": {
+    "fhs_01_clean.R": {"is_control": true, "expected": []},
+    "fhs_02_stat_assumptions.R": {"is_control": false, "expected": [
+      {"rule_id": "STAT-02", "severity": "Important"},
+      {"rule_id": "STAT-04", "severity": "Important"},
+      {"rule_id": "DATA-05", "severity": "Important"},
+      {"rule_id": "STAT-01", "severity": "Minor"}
+    ]},
+    "fhs_03_confounding.R": {"is_control": false, "expected": [
+      {"rule_id": "DESIGN-01", "severity": "Important"},
+      {"rule_id": "INTERP-01", "severity": "Critical"},
+      {"rule_id": "INTERP-04", "severity": "Minor"}
+    ]},
+    "fhs_04_coding_bugs.R": {"is_control": false, "expected": [
+      {"rule_id": "DATA-07", "severity": "Critical"},
+      {"rule_id": "DATA-08", "severity": "Critical"},
+      {"rule_id": "DATA-03", "severity": "Important"},
+      {"rule_id": "INTERP-02", "severity": "Important"}
+    ]},
+    "fhs_05_reproducibility.R": {"is_control": false, "expected": [
+      {"rule_id": "REPRO-02", "severity": "Important"},
+      {"rule_id": "REPRO-01", "severity": "Important"},
+      {"rule_id": "REPRO-04", "severity": "Minor"},
+      {"rule_id": "REPRO-05", "severity": "Minor"}
+    ]},
+    "test_01_ml_leakage.py": {"is_control": false, "expected": [
+      {"rule_id": "MODEL-01", "severity": "Critical"},
+      {"rule_id": "MODEL-02", "severity": "Critical"},
+      {"rule_id": "MODEL-06", "severity": "Important"},
+      {"rule_id": "REPRO-01", "severity": "Important"}
+    ]},
+    "test_02_omics_diffexp.py": {"is_control": false, "expected": [
+      {"rule_id": "DESIGN-03", "severity": "Critical"},
+      {"rule_id": "STAT-03", "severity": "Critical"},
+      {"rule_id": "STAT-01", "severity": "Important"},
+      {"rule_id": "DESIGN-02", "severity": "Important"}
+    ]},
+    "test_03_stats_comparison.py": {"is_control": false, "expected": [
+      {"rule_id": "REPRO-06", "severity": "Important"},
+      {"rule_id": "STAT-01", "severity": "Important"},
+      {"rule_id": "STAT-03", "severity": "Important"},
+      {"rule_id": "INTERP-03", "severity": "Important"},
+      {"rule_id": "INTERP-06", "severity": "Important"},
+      {"rule_id": "DATA-05", "severity": "Minor"},
+      {"rule_id": "INTERP-01", "severity": "Minor"}
+    ]},
+    "test_04_survival.py": {"is_control": false, "expected": [
+      {"rule_id": "DESIGN-04", "severity": "Critical"},
+      {"rule_id": "STAT-02", "severity": "Important"},
+      {"rule_id": "STAT-04", "severity": "Important"},
+      {"rule_id": "REPRO-02", "severity": "Minor"}
+    ]},
+    "test_05_clean_control.py": {"is_control": true, "expected": []},
+    "test_06_diffexp.R": {"is_control": false, "expected": [
+      {"rule_id": "STAT-03", "severity": "Critical"},
+      {"rule_id": "REPRO-01", "severity": "Important"},
+      {"rule_id": "REPRO-04", "severity": "Minor"}
+    ]}
+  }
+}

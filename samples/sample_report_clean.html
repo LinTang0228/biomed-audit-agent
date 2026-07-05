@@ -1,0 +1,45 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Biomedical analysis audit — script.py</title><style>
+*{box-sizing:border-box}
+body{margin:0;background:#ffffff;color:#1a1d21;
+ font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.wrap{max-width:920px;margin:0 auto;padding:0 20px 64px}
+header.band{background:#23303a;color:#fff;padding:22px 0;margin-bottom:20px}
+header.band .wrap{padding-bottom:0}
+h1{font-size:20px;margin:0 0 4px;font-weight:650}
+.sub{color:#c4ccd2;font-size:13px;margin:0;word-break:break-all}
+.meta-row{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:12px;font-size:12.5px;color:#c4ccd2}
+.counts{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 8px}
+.count{border-radius:999px;padding:4px 12px;font-size:12.5px;font-weight:600}
+.count.crit{color:#b3261e;background:#fce8e6}
+.count.imp{color:#8a5a00;background:#fef3d6}
+.count.min{color:#5f6368;background:#eef0f2}
+.notice{color:#5f6368;font-size:12.5px;background:#f6f7f9;border:1px solid #e3e6ea;
+ border-radius:6px;padding:8px 12px;margin:8px 0 4px}
+.sec-label{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#5f6368;
+ margin:22px 0 8px;font-weight:600}
+details.finding{border:1px solid #e3e6ea;border-radius:8px;margin:8px 0;background:#fff}
+summary{list-style:none;cursor:pointer;padding:12px 14px;display:flex;gap:10px;align-items:baseline}
+summary::-webkit-details-marker{display:none}
+summary:focus-visible{outline:2px solid #4c8bf5;outline-offset:2px}
+.badge{flex:none;font-size:11px;font-weight:700;text-transform:uppercase;padding:2px 8px;border-radius:4px}
+.badge.crit{color:#b3261e;background:#fce8e6}
+.badge.imp{color:#8a5a00;background:#fef3d6}
+.badge.min{color:#5f6368;background:#eef0f2}
+.s-title{font-weight:600}
+.s-meta{color:#5f6368;font-size:12px;margin-left:auto;text-align:right}
+.body{padding:2px 14px 14px;border-top:1px solid #e3e6ea}
+.body h4{margin:12px 0 2px;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:#5f6368}
+.body p{margin:2px 0 8px}
+.fix-kind{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;margin:6px 0}
+.fix-kind.mech{color:#0b5cad;background:#e8f0fe}
+.fix-kind.subst{color:#8a5a00;background:#fef3d6}
+pre.diff{background:#f6f7f9;border:1px solid #e3e6ea;border-radius:6px;padding:10px 12px;overflow:auto;
+ font:12.5px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;margin:4px 0}
+pre.diff span{display:block;white-space:pre-wrap}
+pre.diff .del{color:#b3261e}
+pre.diff .add{color:#1e7d43}
+.flag{color:#8a5a00;font-size:12.5px;margin:6px 0}
+.clean{background:#e6f4ea;color:#1e7d43;border-radius:8px;padding:16px;font-weight:600}
+footer{color:#5f6368;font-size:12px;margin-top:32px;border-top:1px solid #e3e6ea;padding-top:12px}
+@media (max-width:560px){.s-meta{margin-left:0;text-align:left;width:100%}summary{flex-wrap:wrap}}
+</style></head><body><header class="band"><div class="wrap"><h1>Biomedical analysis audit</h1><p class="sub">script.py</p><div class="meta-row"><span>Language: python</span><span>Analysis: machine learning / prediction</span><span>Checkers: repro_coding, stats_design, interpretation, leakage</span></div></div></header><div class="wrap"><div class="counts"><span class="count crit">0 Critical</span><span class="count imp">0 Important</span><span class="count min">0 Minor</span></div><div class="notice">This tool reads code; it does not run it. Findings and fixes are reviewed proposals, not verified results — re-run any corrected script to confirm.</div><div class="clean">No issues found in the areas checked.</div><footer>This tool reads code; it does not run it. Findings and fixes are reviewed proposals, not verified results — re-run any corrected script to confirm.</footer></div></body></html>

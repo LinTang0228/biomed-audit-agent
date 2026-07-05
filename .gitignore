@@ -1,0 +1,6 @@
+bio-audit-env/
+__pycache__/
+*.pyc
+report.json
+report.html
+.env

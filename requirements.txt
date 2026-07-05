@@ -1,0 +1,5 @@
+# Biomedical analysis code audit - dependencies
+# Pin exact versions once confirmed working in your environment; ADK evolves.
+google-adk
+google-genai
+pydantic>=2
