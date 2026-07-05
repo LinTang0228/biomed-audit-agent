@@ -80,7 +80,6 @@ biomed_audit_system/       the system
 fhs_fixtures/              R test scripts + GROUND_TRUTH_fhs.md
 test_fixtures/             Python test scripts + GROUND_TRUTH.md
 sample_report_*.html       example rendered reports
-STAGE*_VERIFICATION.md     per-stage verification records
 ```
 
 ## Setup
@@ -126,28 +125,3 @@ saves each report; `eval/evaluate.py` scores those reports at rule-id granularit
 and prints precision/recall (overall and by severity), severity agreement, and a
 separate false-positive count on the clean control scripts.
 
-## Verification status (honest)
-Everything **deterministic** in this system has been executed and verified: the
-skill's rule coverage (38/38 planted issues mapped) and no-false-positive check on
-the controls; routing (correct on all 11 fixtures); the combiner (scope,
-de-duplication, sorting, counts); the checker factory (each loads only its area's
-rules); the Layer 2 renderer; and the HTML report (valid, self-contained, strict
-escaping of untrusted content). Per-stage records are in `STAGE*_VERIFICATION.md`.
-
-What is **not yet measured**: the checkers' live behaviour and the resulting
-precision/recall. Those require a live Gemini run of the checkers, which the
-development sandbox could not perform. The harness plus `answer_key.json` provide
-the exact procedure to produce the numbers.
-
-## Limitations
-- Single-file, **static** review: no execution, no access to the data, no
-  cross-file analysis. Many checks confirm a safeguard is *present in the code*,
-  not that the *result is correct*.
-- Suggested fixes are **reviewed proposals**, not verified results; re-run any
-  corrected script to confirm.
-- **R** deterministic depth is narrower than Python; judgement-based checks apply
-  equally to both.
-- Findings depend on a probabilistic model, so wording and borderline (Minor /
-  judgement) findings vary between runs; Critical/Important items are the stable
-  core. This tool assists, and does not replace, review by a qualified
-  statistician.
