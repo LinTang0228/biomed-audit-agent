@@ -40,6 +40,8 @@ The rules are grounded in published standards (SAMPL, the EQUATOR reporting
 guidelines, TRIPOD/TRIPOD+AI, and the ML-leakage literature).
 
 ## Architecture
+
+[View the Architecture Workflow Diagram (PDF)](./BiomedAudit_agent_workflow_v2.pdf)
 ```
 script (.py / .R)
    |
