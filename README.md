@@ -41,7 +41,7 @@ guidelines, TRIPOD/TRIPOD+AI, and the ML-leakage literature).
 
 ## Architecture
 
-[View the Architecture Workflow Diagram (PDF)](./BiomedAudit_agent_workflow_v2.pdf)
+![Architecture Workflow Diagram](./BiomedAudit_agent_workflow.png)
 ```
 script (.py / .R)
    |
