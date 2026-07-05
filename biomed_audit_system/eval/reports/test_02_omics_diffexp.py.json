@@ -1,0 +1,136 @@
+{
+  "language": "python",
+  "analysis_types": [
+    "classical statistics (test / regression)"
+  ],
+  "checkers_run": [
+    "repro_coding",
+    "stats_design",
+    "interpretation"
+  ],
+  "counts": {
+    "Critical": 2,
+    "Important": 6,
+    "Minor": 1
+  },
+  "findings": [
+    {
+      "id": "F1",
+      "rule_id": "STAT-03",
+      "area": "statistics",
+      "severity": "Critical",
+      "title": "Multiple comparisons not corrected",
+      "location": "22-29",
+      "what": "Two thousand hypothesis tests are performed (one for each gene), and each p-value is judged against a nominal alpha level of 0.05, with no correction for multiple comparisons.",
+      "why": "Without adjustment for multiple testing, the probability of obtaining false positive results increases dramatically with the number of tests performed. With 2000 tests, approximately 100 genes would be expected to be 'significant' by chance alone at alpha=0.05.",
+      "fix_kind": "mechanical",
+      "suggestion": "Before: pvals = np.array(pvals)\nhits = counts.index[pvals < 0.05]\nAfter: from statsmodels.stats.multitest import multipletests\nrejected, pvals_corrected, _, _ = multipletests(pvals, alpha=0.05, method='fdr_bh')\nhits = counts.index[rejected]\nRationale: Control the False Discovery Rate (FDR) using a method like Benjamini-Hochberg (fdr_bh) to account for multiple comparisons and reduce false positives.",
+      "confidence": "high"
+    },
+    {
+      "id": "F2",
+      "rule_id": "DESIGN-03",
+      "area": "study_design",
+      "severity": "Critical",
+      "title": "Biological condition perfectly confounded with batch",
+      "location": "16-17",
+      "what": "The 'condition' variable ('ctrl'/'treat') is perfectly aligned with the 'batch' variable ('b1'/'b2'). All 'ctrl' samples are from batch 'b1', and all 'treat' samples are from batch 'b2'.",
+      "why": "When biological variables are perfectly confounded with technical variables like processing batch, it is impossible to disentangle their effects. Any observed differences could be due to the batch effect rather than the biological condition of interest.",
+      "fix_kind": "substantive",
+      "suggestion": "Before: condition = np.array([\"ctrl\"] * 6 + [\"treat\"] * 6)\nbatch = np.array([\"b1\"] * 6 + [\"b2\"] * 6)\nAfter: Ensure conditions are randomized or balanced across batches during experimental design. If data is already collected, acknowledge the unresolvable confounding.\nRationale: Balance condition across batches so that biological and technical effects can be separately estimated.",
+      "confidence": "high"
+    },
+    {
+      "id": "F3",
+      "rule_id": "DATA-08",
+      "area": "data_handling",
+      "severity": "Important",
+      "title": "Metadata variable 'batch' defined but not used in analysis",
+      "location": "17",
+      "what": "The 'batch' variable is defined but not incorporated into the differential expression analysis.",
+      "why": "Batch effects are a common confounder in omics data; ignoring this metadata can lead to biased or incorrect differential expression results. If the data is truly simulated with batch effects, the current t-test will not account for them.",
+      "fix_kind": "substantive",
+      "suggestion": "Before: batch = np.array([\"b1\"] * 6 + [\"b2\"] * 6)\nAfter: Incorporate 'batch' as a covariate in the statistical model (e.g., using a linear model instead of a t-test) or explicitly justify why it's ignored.",
+      "confidence": "high"
+    },
+    {
+      "id": "F4",
+      "rule_id": "INTERP-05",
+      "area": "interpretation",
+      "severity": "Important",
+      "title": "Statistical significance conflated with practical importance",
+      "location": "30",
+      "what": "The script reports 'differentially expressed genes' solely based on a p-value threshold (p < 0.05) without considering the magnitude of the difference.",
+      "why": "With large samples (or even in simulated data like this, if it were to represent a real scenario), trivial effects can reach statistical significance. Reporting 'differentially expressed' without assessing effect size can imply practical or biological importance where none exists.",
+      "fix_kind": "substantive",
+      "suggestion": "Before: 'print(f\"{len(hits)} differentially expressed genes\")' After: 'print(f\"Found {len(hits)} genes with p < 0.05. Further analysis of effect sizes would be needed to determine practical significance.')' Supplement statistical significance with a discussion of effect size or other domain-relevant thresholds to indicate practical importance.",
+      "confidence": "high"
+    },
+    {
+      "id": "F5",
+      "rule_id": "REPRO-01",
+      "area": "reproducibility",
+      "severity": "Important",
+      "title": "Random seed not set for stochastic data generation",
+      "location": "11",
+      "what": "The `np.random.default_rng()` is initialized without a seed, making the synthetic data generation (`rng.poisson`) non-reproducible.",
+      "why": "Results (the generated 'counts' data and thus the 'pvals') will change between runs, making the script's output non-reproducible.",
+      "fix_kind": "mechanical",
+      "suggestion": "Before: rng = np.random.default_rng()\nAfter: rng = np.random.default_rng(42)  # Use a fixed integer seed for reproducibility.",
+      "confidence": "high"
+    },
+    {
+      "id": "F6",
+      "rule_id": "STAT-01",
+      "area": "statistics",
+      "severity": "Important",
+      "title": "T-test inappropriate for count data",
+      "location": "12, 25",
+      "what": "A t-test (`stats.ttest_ind`) is applied to `counts` data, which are simulated using a Poisson distribution. T-tests assume normally distributed data.",
+      "why": "Count data, especially with a relatively small number of samples (6 per group, effectively 3 due to pseudoreplication), typically follow a Poisson or Negative Binomial distribution, not a normal distribution. Applying a parametric test like the t-test can lead to invalid p-values and confidence intervals.",
+      "fix_kind": "substantive",
+      "suggestion": "Before: _, p = stats.ttest_ind(a, b)\nAfter: Use a statistical method appropriate for count data, such as a negative binomial generalized linear model (e.g., from `statsmodels` or dedicated RNA-seq packages like DESeq2/edgeR). If counts are very large and sample size is sufficient, justify robustness via the central limit theorem.\nRationale: Use a test that matches the data distribution for valid inference.",
+      "confidence": "high"
+    },
+    {
+      "id": "F7",
+      "rule_id": "STAT-04",
+      "area": "statistics",
+      "severity": "Important",
+      "title": "Effect size and confidence interval not reported",
+      "location": "29-30",
+      "what": "The script only reports the count of genes with p-values below a threshold and does not extract or report effect sizes (e.g., mean difference, log2 fold change) or their corresponding confidence intervals for the differentially expressed genes.",
+      "why": "A p-value alone indicates statistical significance but provides no information about the magnitude or precision of the observed effect. Effect sizes with confidence intervals are crucial for interpreting the practical importance and reliability of findings.",
+      "fix_kind": "mechanical",
+      "suggestion": "Before: print(f\"{len(hits)} differentially expressed genes\")\nAfter: In addition to p-values, calculate and report the mean difference or log2 fold change between conditions for each gene, along with 95% confidence intervals for these estimates. For example, store `a.mean() - b.mean()` or `np.log2(a.mean() / b.mean())` along with p-values.\nRationale: Provide effect sizes and confidence intervals to allow for quantitative interpretation of the results.",
+      "confidence": "high"
+    },
+    {
+      "id": "F8",
+      "rule_id": "DESIGN-02",
+      "area": "study_design",
+      "severity": "Important",
+      "title": "Non-independent technical replicates treated as independent",
+      "location": "18, 25",
+      "what": "The `sample_id` variable indicates there are two technical replicates for each biological sample (e.g., sample 1 appears twice). The `stats.ttest_ind` function treats these replicates as independent observations.",
+      "why": "Treating non-independent observations as independent (pseudoreplication) inflates the sample size, leading to underestimated standard errors and an increased likelihood of false positive findings.",
+      "fix_kind": "substantive",
+      "suggestion": "Before: _, p = stats.ttest_ind(a, b)\nAfter: Aggregate technical replicates to the sample level (e.g., by averaging or summing counts) before performing statistical tests, or use a mixed-effects model if individual replicates are needed.\nRationale: Analyse at the correct level of independence (the biological sample) to avoid pseudoreplication.",
+      "confidence": "high"
+    },
+    {
+      "id": "F9",
+      "rule_id": "REPRO-03",
+      "area": "reproducibility",
+      "severity": "Minor",
+      "title": "Software package versions not recorded",
+      "location": "N/A",
+      "what": "The script uses external packages (numpy, pandas, scipy) but does not record their versions or the environment.",
+      "why": "Analyses can change across package versions; without a version record the environment cannot be reconstructed, leading to potential reproducibility issues if package behavior changes.",
+      "fix_kind": "mechanical",
+      "suggestion": "Before: (no version recording)\nAfter: Add `pip freeze > requirements.txt` to the project or include `sessionInfo()` equivalent in the script to log package versions.",
+      "confidence": "high"
+    }
+  ],
+  "scope_violations_dropped": 0
+}

@@ -1,0 +1,163 @@
+{
+  "language": "python",
+  "analysis_types": [
+    "machine learning / prediction"
+  ],
+  "checkers_run": [
+    "repro_coding",
+    "stats_design",
+    "interpretation",
+    "leakage"
+  ],
+  "counts": {
+    "Critical": 4,
+    "Important": 5,
+    "Minor": 2
+  },
+  "findings": [
+    {
+      "id": "F1",
+      "rule_id": "MODEL-01",
+      "area": "modeling_evaluation",
+      "severity": "Critical",
+      "title": "StandardScaler fit before train/test split",
+      "location": "25",
+      "what": "The `StandardScaler` is fit on the full dataset `X` before the data is split into training and testing sets.",
+      "why": "Fitting the scaler on the entire dataset allows information from the test set (mean and standard deviation) to leak into the training process, leading to an overly optimistic performance estimate.",
+      "fix_kind": "mechanical",
+      "suggestion": "Fit the `StandardScaler` only on the training data and then transform both training and testing sets. Alternatively, embed the scaler within a `Pipeline` to ensure it's fit correctly within each cross-validation fold. For example: `X_train_scaled = scaler.fit_transform(X_train); X_test_scaled = scaler.transform(X_test)`.",
+      "confidence": "high"
+    },
+    {
+      "id": "F2",
+      "rule_id": "MODEL-01",
+      "area": "modeling_evaluation",
+      "severity": "Critical",
+      "title": "Feature selection fit before train/test split",
+      "location": "29",
+      "what": "The `SelectKBest` feature selector is fit on the full dataset `X, y` before the data is split into training and testing sets.",
+      "why": "Performing feature selection on the entire dataset uses information from the test set, thus leaking information and artificially inflating the reported model performance.",
+      "fix_kind": "mechanical",
+      "suggestion": "Fit `SelectKBest` only on the training data and then apply the transform to both training and testing sets. For example: `selector.fit(X_train, y_train); X_train_selected = selector.transform(X_train); X_test_selected = selector.transform(X_test)`.",
+      "confidence": "high"
+    },
+    {
+      "id": "F3",
+      "rule_id": "MODEL-01",
+      "area": "modeling_evaluation",
+      "severity": "Critical",
+      "title": "SMOTE applied before train/test split",
+      "location": "33",
+      "what": "SMOTE (oversampling) is applied to the full dataset `X, y` before the data is split into training and testing sets.",
+      "why": "Applying SMOTE before splitting generates synthetic samples based on patterns in the entire dataset, including the test set. This leaks information from the test set into the training process and inflates performance estimates.",
+      "fix_kind": "mechanical",
+      "suggestion": "Apply SMOTE only to the training data after the split. For example: `X_train_resampled, y_train_resampled = SMOTE().fit_resample(X_train, y_train)`.",
+      "confidence": "high"
+    },
+    {
+      "id": "F4",
+      "rule_id": "MODEL-02",
+      "area": "modeling_evaluation",
+      "severity": "Critical",
+      "title": "Non-independent units split across train/test",
+      "location": "35",
+      "what": "The `patient_id` variable, indicating patient groups, is generated but not used when performing the `train_test_split`.",
+      "why": "If multiple rows belong to the same patient, a random split can assign samples from the same patient to both the training and test sets. This violates the assumption of independence between train and test sets, allowing the model to 'memorize' patient-specific patterns and leading to an inflated estimate of generalisation performance.",
+      "fix_kind": "mechanical",
+      "suggestion": "Use `GroupShuffleSplit` or `GroupKFold` from `sklearn.model_selection` and pass the `patient_id` array to ensure patient-wise splitting. For example: `from sklearn.model_selection import GroupShuffleSplit; gss = GroupShuffleSplit(n_splits=1, test_size=0.2, random_state=42); train_idx, test_idx = next(gss.split(X, y, groups=patient_id)); X_train, X_test = X[train_idx], X[test_idx]`.",
+      "confidence": "high"
+    },
+    {
+      "id": "F5",
+      "rule_id": "MODEL-06",
+      "area": "modeling_evaluation",
+      "severity": "Important",
+      "title": "Accuracy is sole metric for imbalanced classes",
+      "location": "40",
+      "what": "Accuracy is the only reported evaluation metric for an outcome (`y`) generated with a base probability of 0.12, indicating class imbalance.",
+      "why": "Accuracy is misleading when classes are imbalanced because a model can achieve high accuracy by simply predicting the majority class. This masks poor performance on the minority class, which is often the class of interest in clinical contexts.",
+      "fix_kind": "mechanical",
+      "suggestion": "Report additional metrics more robust to class imbalance, such as AUROC/AUPRC, F1-score, balanced accuracy, precision, or recall. For example: `from sklearn.metrics import f1_score; print('F1-score:', f1_score(y_test, pred))`.",
+      "confidence": "high"
+    },
+    {
+      "id": "F6",
+      "rule_id": "MODEL-07",
+      "area": "modeling_evaluation",
+      "severity": "Important",
+      "title": "Weak validation design: single train/test split",
+      "location": "35, 40",
+      "what": "The model is evaluated using only a single train/test split, and a point estimate of accuracy is reported without any measure of variability.",
+      "why": "A single train/test split provides a high-variance, potentially unrepresentative estimate of model performance. The specific split might be fortuitous or unlucky, and the reported accuracy may not generalize well to other data partitions.",
+      "fix_kind": "substantive",
+      "suggestion": "Implement repeated cross-validation (e.g., `RepeatedKFold` or `StratifiedKFold`) to obtain more robust performance estimates and report measures of variability (e.g., mean and standard deviation) across folds. For example: `from sklearn.model_selection import KFold; kf = KFold(n_splits=5, shuffle=True, random_state=42); scores = []; for train_idx, test_idx in kf.split(X, y): ...; scores.append(accuracy_score(y_test_fold, pred_fold)); print('Mean Accuracy:', np.mean(scores), 'Std:', np.std(scores))`.",
+      "confidence": "high"
+    },
+    {
+      "id": "F7",
+      "rule_id": "REPRO-01",
+      "area": "reproducibility",
+      "severity": "Important",
+      "title": "Random seeds not set for stochastic operations",
+      "location": "18, 32, 35, 36",
+      "what": "`np.random.default_rng()`, `SMOTE().fit_resample()`, `train_test_split()`, and `RandomForestClassifier()` are called without a fixed random seed or `random_state`.",
+      "why": "Results from data generation, resampling, data splitting, and model initialization will change between runs, making the analysis non-reproducible.",
+      "fix_kind": "mechanical",
+      "suggestion": "Set a fixed seed once (e.g., `rng = np.random.default_rng(42)`) and pass a fixed `random_state` to all stochastic functions (e.g., `SMOTE(random_state=42)`, `train_test_split(..., random_state=42)`, `RandomForestClassifier(random_state=42)`).",
+      "confidence": "high"
+    },
+    {
+      "id": "F8",
+      "rule_id": "STAT-04",
+      "area": "statistics",
+      "severity": "Important",
+      "title": "Confidence interval not reported for accuracy",
+      "location": "test_01_ml_leakage.py line 40",
+      "what": "The script reports a single point estimate for the model's accuracy (line 40) without an accompanying confidence interval.",
+      "why": "A point estimate alone does not convey the precision or variability of the accuracy metric. Without a confidence interval, it's difficult to assess the reliability of the reported accuracy or to compare it meaningfully with other models or benchmarks.",
+      "fix_kind": "mechanical",
+      "suggestion": "Report the accuracy score alongside its 95% confidence interval, which can be computed using methods like bootstrapping or binomial proportion confidence intervals.",
+      "confidence": "high"
+    },
+    {
+      "id": "F9",
+      "rule_id": "DESIGN-02",
+      "area": "study_design",
+      "severity": "Important",
+      "title": "Non-independent observations treated as independent",
+      "location": "test_01_ml_leakage.py lines 20, 25-37",
+      "what": "The script generates `patient_id` at line 20, indicating clustered data (multiple observations per patient), but this grouping information is ignored. Subsequent steps like feature scaling, feature selection, SMOTE oversampling, and especially the train/test split treat all observations as independent. This risks having data from the same patient in both the training and test sets.",
+      "why": "Treating non-independent observations as independent (pseudoreplication) leads to an underestimation of variability and overoptimistic performance estimates. When a model sees parts of the same patient in both training and test data, its reported accuracy will likely be inflated compared to its true generalization ability on new, unseen patients. Applying SMOTE before a group-aware split is also problematic, as it generates synthetic samples without respecting patient boundaries, potentially creating further data leakage.",
+      "fix_kind": "substantive",
+      "suggestion": "Ensure the `patient_id` variable is carried through the data processing. Split the data at the patient level before any further processing (e.g., using `GroupShuffleSplit` or `GroupKFold`) to ensure all observations from a given patient are exclusively in either the training or testing set. Then, apply SMOTE only to the training subset.",
+      "confidence": "high"
+    },
+    {
+      "id": "F10",
+      "rule_id": "REPRO-03",
+      "area": "reproducibility",
+      "severity": "Minor",
+      "title": "Software and package versions not recorded",
+      "location": "N/A",
+      "what": "The script depends on several third-party packages (numpy, pandas, sklearn, imblearn) but does not record their versions.",
+      "why": "Analysis results can change across package versions; without a version record, the exact environment cannot be reconstructed, hindering reproducibility.",
+      "fix_kind": "mechanical",
+      "suggestion": "Record package versions using tools like `pip freeze > requirements.txt` or by printing relevant `.__version__` attributes of imported libraries.",
+      "confidence": "high"
+    },
+    {
+      "id": "F11",
+      "rule_id": "REPRO-05",
+      "area": "reproducibility",
+      "severity": "Minor",
+      "title": "Raw data overwritten multiple times",
+      "location": "25, 29, 32",
+      "what": "The `X` and `y` variables are repeatedly overwritten in place by transformations (scaling, feature selection, SMOTE).",
+      "why": "Overwriting data objects in place reduces readability and makes the transformation history hard to audit or reproduce, as intermediate states are lost.",
+      "fix_kind": "mechanical",
+      "suggestion": "Keep the raw data immutable; use descriptive, versioned names for derived objects (e.g., `X_scaled = scaler.fit_transform(X)`, `X_selected = selector.fit_transform(X_scaled, y)`).",
+      "confidence": "high"
+    }
+  ],
+  "scope_violations_dropped": 0
+}

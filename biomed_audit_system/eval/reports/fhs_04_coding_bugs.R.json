@@ -1,0 +1,123 @@
+{
+  "language": "r",
+  "analysis_types": [
+    "classical statistics (test / regression)"
+  ],
+  "checkers_run": [
+    "repro_coding",
+    "stats_design",
+    "interpretation"
+  ],
+  "counts": {
+    "Critical": 1,
+    "Important": 5,
+    "Minor": 2
+  },
+  "findings": [
+    {
+      "id": "F1",
+      "rule_id": "DATA-08",
+      "area": "data_handling",
+      "severity": "Critical",
+      "title": "Model variable (continuous) mismatches interpretation (categorical)",
+      "location": "11, 14",
+      "what": "The linear model uses the continuous `CIG` variable (`lm(SBP ~ CIG)`), but the interpretation discusses a categorical comparison ('smokers have higher SBP than nonsmokers'), implying the use of a binary smoking status variable.",
+      "why": "The estimate and its interpretation no longer correspond to the intended question. A linear model with a continuous predictor estimates the effect of a unit increase in that predictor, not a binary difference between categories. This mismatch leads to incorrect conclusions from the stated model.",
+      "fix_kind": "mechanical",
+      "suggestion": "To align the model with the stated interpretation ('smokers vs nonsmokers'), recode `CIG` into a binary smoking status variable, and use it as a factor. For example:\n```R\nfhs$smoking_status <- factor(ifelse(fhs$CIG > 0, 'Smoker', 'Non-smoker'),\n                             levels = c('Non-smoker', 'Smoker'))\nm <- lm(SBP ~ smoking_status, data = fhs)\nsummary(m)\n# The coefficient for 'smoking_statusSmoker' will now represent the difference\n# in SBP between smokers and non-smokers.\n```",
+      "confidence": "high"
+    },
+    {
+      "id": "F2",
+      "rule_id": "DATA-03",
+      "area": "data_handling",
+      "severity": "Important",
+      "title": "Silent row exclusion without justification or logging",
+      "location": "5",
+      "what": "Rows where `SBP >= 180` are removed without clear justification for the threshold or reporting the number of affected rows. The comment 'Restrict to a plausible BP range' is vague.",
+      "why": "Removing observations, especially based on a clinically meaningful threshold, changes the sample and can bias results if not explicitly justified and transparently reported. It affects reproducibility as the final sample is different from the original without clear documentation.",
+      "fix_kind": "substantive",
+      "suggestion": "Provide a clear rationale for the `SBP < 180` threshold. Report how many rows were removed. For example:\n```R\ninitial_rows <- nrow(fhs)\n# Rationale: SBP >= 180 mmHg is considered severe hypertension or a potential measurement error.\nfhs <- fhs[fhs$SBP < 180, ]\nrows_removed <- initial_rows - nrow(fhs)\nprint(paste('Removed', rows_removed, 'rows where SBP >= 180 mmHg.'))\n```",
+      "confidence": "high"
+    },
+    {
+      "id": "F3",
+      "rule_id": "INTERP-02",
+      "area": "interpretation",
+      "severity": "Important",
+      "title": "Risk of wrong sign interpretation due to reversed coding",
+      "location": "N| 14",
+      "what": "The script defines a `smoke` variable (Line 8) where `0` means smoker and `1` means non-smoker. Although the regression uses `CIG` (cigarette exposure), the conclusion on Line 14 interprets a 'positive coefficient' of `CIG` to mean 'smokers have higher SBP than nonsmokers'. While this interpretation is correct for a positive coefficient of `CIG` (assuming CIG is number of cigarettes), the preceding definition of the reverse-coded `smoke` variable creates a high potential for misinterpreting the direction of effect if the author confused `CIG` with `smoke` or its underlying logic.",
+      "why": "The presence of a reverse-coded variable (`smoke`) in the immediate context, even if not directly used in the model, creates ambiguity. If the user were to interpret a positive coefficient from a model using `smoke`, it would imply non-smokers have higher SBP (due to `smoke=1` being non-smoker). This could lead to an inverted conclusion if the coding scheme of `smoke` implicitly influenced the interpretation of the `CIG` coefficient's sign.",
+      "fix_kind": "substantive",
+      "suggestion": "Before: `The coefficient is positive, so smokers have higher SBP than nonsmokers.`\nAfter: `The coefficient for CIG is positive, indicating that higher cigarette exposure is associated with higher SBP. This means, on average, smokers (CIG>0) have higher SBP than non-smokers (CIG=0).` Also consider correcting the coding of the `smoke` variable (e.g., `1` for smoker) if it is intended for use, or removing it if not.",
+      "confidence": "medium"
+    },
+    {
+      "id": "F4",
+      "rule_id": "STAT-02",
+      "area": "statistics",
+      "severity": "Important",
+      "title": "Linear model assumptions unchecked",
+      "location": "11| m <- lm(SBP ~ CIG, data = fhs)",
+      "what": "The script fits a linear model but does not include any checks for its underlying assumptions, such as linearity, homoscedasticity, or normality of residuals.",
+      "why": "Violations of linear regression assumptions, particularly homoscedasticity, can invalidate standard errors and p-values, leading to unreliable inference regarding the association between CIG and SBP.",
+      "fix_kind": "mechanical",
+      "suggestion": "plot(m) # After fitting the model, inspect diagnostic plots (e.g., residuals vs. fitted, Q-Q plot for residuals) to check for assumption adherence. Address any violations, e.g., with robust standard errors or a different model.",
+      "confidence": "high"
+    },
+    {
+      "id": "F5",
+      "rule_id": "DESIGN-01",
+      "area": "study_design",
+      "severity": "Important",
+      "title": "Confounder 'age' not adjusted for",
+      "location": "11| m <- lm(SBP ~ CIG, data = fhs)",
+      "what": "The linear model for SBP on CIG does not adjust for age, a known common cause of both SBP and smoking status.",
+      "why": "Omitting age, a plausible confounder in cardiovascular studies, can bias the estimated association between cigarette exposure and SBP, potentially overstating or understating the true effect.",
+      "fix_kind": "substantive",
+      "suggestion": "m_adj <- lm(SBP ~ CIG + AGE, data = fhs) # Assuming 'AGE' is available in the dataset. Add age to the model to adjust for its confounding effect and compare crude vs. adjusted estimates.",
+      "confidence": "high"
+    },
+    {
+      "id": "F6",
+      "rule_id": "DESIGN-04",
+      "area": "study_design",
+      "severity": "Important",
+      "title": "Selection bias from filtering on outcome",
+      "location": "5| fhs <- fhs[fhs$SBP < 180, ]",
+      "what": "The dataset is restricted to observations where SBP is less than 180 mmHg, which is a filter applied to the outcome variable.",
+      "why": "Filtering the dataset based on the outcome variable can introduce selection bias, leading to a distorted or unrepresentative estimate of the association between CIG and SBP for the original population.",
+      "fix_kind": "substantive",
+      "suggestion": "fhs <- read.csv(\"fhs_2026Spring.csv\") # Avoid filtering on the outcome (SBP) unless explicitly justified by a specific, well-defined target population for which such a restriction is valid and unbiased.",
+      "confidence": "medium"
+    },
+    {
+      "id": "F7",
+      "rule_id": "DATA-01",
+      "area": "data_handling",
+      "severity": "Minor",
+      "title": "Data not inspected before analysis",
+      "location": "5, 8, 11",
+      "what": "The script performs filtering on SBP and uses SBP and CIG in a linear model without prior inspection of their structure, range, or types.",
+      "why": "Unexamined data can hide type errors, impossible values, or unexpected distributions that affect subsequent analysis steps like filtering and modelling. For example, CIG might contain non-numeric values or a very skewed distribution which would impact a linear regression.",
+      "fix_kind": "mechanical",
+      "suggestion": "Add `summary(fhs)` or targeted checks like `str(fhs$SBP)` and `summary(fhs$CIG)` after loading and before filtering/modeling. For example:\n```R\n# Before filtering/modeling\nsummary(fhs$SBP)\nsummary(fhs$CIG)\n# ... rest of the code ...\n```",
+      "confidence": "high"
+    },
+    {
+      "id": "F8",
+      "rule_id": "REPRO-05",
+      "area": "reproducibility",
+      "severity": "Minor",
+      "title": "Raw data object mutated in place",
+      "location": "5, 8",
+      "what": "The `fhs` dataframe, presumably loaded as raw data, is modified in place multiple times by filtering (line 5) and adding a new column (line 8).",
+      "why": "Overwriting the raw data object through several transformations makes it harder to audit the transformation history, understand the data provenance, and debug issues. It also makes it difficult to revert to the original state for alternative analyses.",
+      "fix_kind": "mechanical",
+      "suggestion": "Keep the raw data immutable; use descriptive, versioned names for derived objects. For example:\n```R\n# Instead of: fhs <- fhs[fhs$SBP < 180, ]\n# Use: fhs_filtered <- fhs[fhs$SBP < 180, ]\n# Instead of: fhs$smoke <- ifelse(fhs$CIG > 0, 0, 1)\n# Use: fhs_processed$smoke <- ifelse(fhs_processed$CIG > 0, 0, 1)\n```",
+      "confidence": "high"
+    }
+  ],
+  "scope_violations_dropped": 0
+}

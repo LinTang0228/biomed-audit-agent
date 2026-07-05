@@ -51,11 +51,15 @@ calls that need reading the code and metadata, not just pattern-matching.
   time-varying exposure / landmark analysis; make inclusion representative of the
   target population.
 
-**DESIGN-05 — No sample-size or power justification**
-- Look for: no a-priori sample-size/power statement; or a *post hoc* "observed
-  power" computed from the result.
+**DESIGN-05 — Sample-size / power concern**
+- Look for: a *post hoc* "observed power" computed from the result; or a null
+  result interpreted as evidence of no effect in a visibly small sample.
+- Report only when: there is a concrete signal in the script — a small sample is
+  visible, or a non-significant result is read as "no effect." Do NOT raise the
+  mere absence of an a-priori power statement as a finding: it is rarely
+  expressible from code alone and is not, by itself, reportable.
 - Why: underpowered studies yield unreliable estimates; post-hoc power is a
   deterministic function of the p-value and is uninformative.
-- Severity: Minor (context-dependent; often not expressible from code alone).
+- Severity: Minor.
 - Fix (substantive): justify sample size a priori; do not report observed power —
   report the effect size with its confidence interval instead.

@@ -1,0 +1,110 @@
+{
+  "language": "python",
+  "analysis_types": [
+    "survival"
+  ],
+  "checkers_run": [
+    "repro_coding",
+    "stats_design",
+    "interpretation"
+  ],
+  "counts": {
+    "Critical": 1,
+    "Important": 4,
+    "Minor": 2
+  },
+  "findings": [
+    {
+      "id": "F1",
+      "rule_id": "DESIGN-04",
+      "area": "study_design",
+      "severity": "Critical",
+      "title": "Exposure definition may cause immortal-time bias",
+      "location": "12| df[\"treated\"] = df[\"drug_start_day\"].notna().astype(int)",
+      "what": "The 'treated' exposure is defined based on the presence of a 'drug_start_day'. If 'drug_start_day' can occur after the baseline time for the survival analysis begins, this can introduce immortal-time bias.",
+      "why": "Defining exposure with future information creates immortal-time bias, where subjects in the 'treated' group are implicitly required to survive for a period (until drug_start_day) before becoming exposed, biasing their survival estimates upward.",
+      "fix_kind": "substantive",
+      "suggestion": "Define exposure using only baseline information available at the start of follow-up, or employ a time-varying exposure model or landmark analysis if treatment status changes during follow-up. For example: `df['treated'] = (df['drug_start_day'] <= df['baseline_date']).astype(int)` or `cph.fit(..., formula=\"treated + age\", time_varying_predictors={'treated'})`",
+      "confidence": "medium"
+    },
+    {
+      "id": "F2",
+      "rule_id": "INTERP-01",
+      "area": "interpretation",
+      "severity": "Important",
+      "title": "Causal language for observational exposure",
+      "location": "2, 12, 19",
+      "what": "The script uses the term 'treatment' in the docstring and for the calculated hazard ratio, implying a causal intervention. However, the 'treated' variable is derived from an observational indicator (`drug_start_day.notna()`), not from a randomized experiment.",
+      "why": "Using causal or interventional language like 'treatment' when the data is observational can lead to misinterpretation, as association does not establish causation. Observational estimates are prone to confounding and lack the robust causal inference of experimental designs.",
+      "fix_kind": "substantive",
+      "suggestion": "Before: N| 2| Synthetic test fixture: survival analysis of a treatment on time-to-event.\nN| 19| print(f\"Hazard ratio for treatment: {hr:.2f}\")\nAfter: N| 2| Synthetic test fixture: survival analysis of an association with 'treated' status on time-to-event.\nN| 19| print(f\"Hazard ratio for 'treated' status: {hr:.2f}\")\nAlso, clarify in any accompanying report that this is an associational finding from observational data and not a causal effect.",
+      "confidence": "high"
+    },
+    {
+      "id": "F3",
+      "rule_id": "REPRO-02",
+      "area": "reproducibility",
+      "severity": "Important",
+      "title": "Non-portable file path",
+      "location": "9",
+      "what": "The script uses an absolute and user-specific file path to load the data: '/Users/lab/data/cohort_final_v3.csv'.",
+      "why": "Absolute or user-specific paths prevent the script from being run on any other machine or by another user without manual modification, defeating reproducibility.",
+      "fix_kind": "mechanical",
+      "suggestion": "Use relative paths or library functions for portable path management.For example:df = pd.read_csv('data/cohort_final_v3.csv') # Assuming 'data' is a subdirectory of the script's location",
+      "confidence": "high"
+    },
+    {
+      "id": "F4",
+      "rule_id": "STAT-02",
+      "area": "statistics",
+      "severity": "Important",
+      "title": "Proportional hazards assumption not checked",
+      "location": "15| cph.fit(df[[\"time\", \"event\", \"treated\", \"age\"]],\n16|         duration_col=\"time\", event_col=\"event\")",
+      "what": "The Cox Proportional Hazards model's core assumption (proportional hazards) is not checked after fitting.",
+      "why": "Inference from a Cox model is only valid if the proportional hazards assumption holds. Violations can lead to biased hazard ratio estimates and inaccurate p-values.",
+      "fix_kind": "mechanical",
+      "suggestion": "Check the proportional hazards assumption after fitting the model. Example: `cph.check_assumptions(df, p_value_threshold=0.05)` and interpret the results. If violated, consider a stratified Cox model or time-varying covariates.",
+      "confidence": "high"
+    },
+    {
+      "id": "F5",
+      "rule_id": "STAT-04",
+      "area": "statistics",
+      "severity": "Important",
+      "title": "Hazard ratio reported without confidence interval",
+      "location": "19| print(f\"Hazard ratio for treatment: {hr:.2f}\")",
+      "what": "The script reports only the point estimate of the Hazard Ratio for treatment but omits its confidence interval.",
+      "why": "Reporting only a point estimate provides no information about the precision or uncertainty of the estimate. A confidence interval quantifies this uncertainty and helps in interpreting the clinical or practical significance of the effect.",
+      "fix_kind": "mechanical",
+      "suggestion": "Report the 95% confidence interval alongside the Hazard Ratio. Example: `cph.print_summary()` or `ci = cph.confidence_intervals_.loc['treated']; print(f\"HR: {hr:.2f} (95% CI: {np.exp(ci['lower-0.95']):.2f}-{np.exp(ci['upper-0.95']):.2f})\")`",
+      "confidence": "high"
+    },
+    {
+      "id": "F6",
+      "rule_id": "DATA-01",
+      "area": "data_handling",
+      "severity": "Minor",
+      "title": "Data not inspected before analysis",
+      "location": "15",
+      "what": "The dataframe 'df' is used in model fitting (lines 15-16) without any prior inspection of its structure, types, or value ranges. Specifically, 'time', 'event', and 'age' are used directly.",
+      "why": "Unexamined data can harbor type errors, impossible values, or unexpected distributions that can subtly change the correct analysis or lead to errors. For example, 'time' or 'event' might have unexpected non-numeric values or 'age' might contain outliers, affecting the Cox regression.",
+      "fix_kind": "mechanical",
+      "suggestion": "Add explicit inspection steps for the variables being used in the model, for example:df.info()df[['time', 'event', 'treated', 'age']].describe()",
+      "confidence": "high"
+    },
+    {
+      "id": "F7",
+      "rule_id": "REPRO-03",
+      "area": "reproducibility",
+      "severity": "Minor",
+      "title": "Software and package versions not recorded",
+      "location": "5-7",
+      "what": "The script depends on `numpy`, `pandas`, and `lifelines`, but does not record their versions or the overall software environment.",
+      "why": "Analysis results can change across different versions of packages. Without a record of the specific versions used, it's impossible to perfectly reconstruct the environment and reproduce the exact results at a later time.",
+      "fix_kind": "mechanical",
+      "suggestion": "Include mechanisms to record the software environment, such as generating a `requirements.txt` file (e.g., `pip freeze > requirements.txt`) or printing package versions at the start of the script (e.g., `print(pd.__version__)`).",
+      "confidence": "high"
+    }
+  ],
+  "scope_violations_dropped": 0
+}

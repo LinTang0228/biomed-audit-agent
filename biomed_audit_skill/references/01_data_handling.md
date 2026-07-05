@@ -9,20 +9,30 @@ matters, default severity, a detection hint, and a fix pattern.
 **DATA-01 — Data not inspected before analysis**
 - Look for: modelling/testing with no prior `str`/`summary`/`head`/`dim` (R) or
   `.info()`/`.describe()`/`.head()`/`.shape` (Python).
+- Report only when: the absence of inspection connects to a concrete,
+  script-specific risk — e.g. a variable is used in a way that suggests its type
+  or coding may be wrong, or values feed a step sensitive to range or scale. Do
+  NOT raise this as a generic hygiene reminder; a lack of inspection alone, with
+  no visible downstream risk, is not reportable.
 - Why: unexamined data hides type errors, impossible values, and structure that
   changes the correct analysis.
-- Severity: Minor (Important if a concrete downstream error follows).
-- Fix (mechanical): add an inspection block before analysis.
+- Severity: Minor.
+- Fix (mechanical): add a targeted inspection of the variables at risk.
 
-**DATA-02 — Missing values not examined or silently handled**
-- Look for: no missingness check; or `na.omit()` / `dropna()` / complete-case
-  modelling with no report of how many rows were lost or why.
-- Why: listwise deletion can bias results and silently shrink the sample; the
-  missingness mechanism matters.
+**DATA-02 — Missing values handled questionably**
+- Look for: the script explicitly acts on missing data in a questionable way —
+  `na.omit()` / `dropna()` / `.fillna()` / imputation — with no report of how many
+  rows were affected or why.
+- Report only when: such handling is visible in the code. Do NOT raise this merely
+  because no missingness check is present: whether missing values exist cannot be
+  determined from the code alone (the data may have none), so the absence of a
+  check is not, by itself, reportable, and ordinary `lm()`/`glm()` fitting is not a
+  trigger.
+- Why: listwise deletion or ad hoc imputation can bias results and silently change
+  the sample; the missingness mechanism matters.
 - Severity: Important.
-- Fix (mechanical → substantive): quantify missingness first
-  (`colSums(is.na(x))` / `df.isna().sum()`); state and justify the handling;
-  consider whether deletion is appropriate.
+- Fix (mechanical → substantive): quantify missingness
+  (`colSums(is.na(x))` / `df.isna().sum()`); state and justify the handling.
 
 **DATA-03 — Silent or unjustified row exclusion**
 - Look for: filters that drop observations without justification or logging

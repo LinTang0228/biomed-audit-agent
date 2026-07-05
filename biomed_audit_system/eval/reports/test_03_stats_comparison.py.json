@@ -1,0 +1,201 @@
+{
+  "language": "python",
+  "analysis_types": [
+    "classical statistics (test / regression)"
+  ],
+  "checkers_run": [
+    "repro_coding",
+    "stats_design",
+    "interpretation"
+  ],
+  "counts": {
+    "Critical": 2,
+    "Important": 10,
+    "Minor": 2
+  },
+  "findings": [
+    {
+      "id": "F1",
+      "rule_id": "INTERP-01",
+      "area": "interpretation",
+      "severity": "Critical",
+      "title": "Causal language used with non-experimental data",
+      "location": "test_03_stats_comparison.py:31",
+      "what": "The conclusion states 'higher biomarker causes worse outcomes.'",
+      "why": "The analysis consists of t-tests comparing groups, which are associational/correlational. The data is synthetic and no experimental manipulation is described. Causal language like 'causes' is not supported by such a design, as association does not establish causation and confounding factors are not accounted for.",
+      "fix_kind": "substantive",
+      "suggestion": "Instead of:\n31| # Conclusion: higher biomarker causes worse outcomes.\nConsider:\n31| # Conclusion: higher biomarker is associated with worse outcomes in this synthetic dataset. (Acknowledge limitations regarding causality and generalizability.)",
+      "confidence": "high"
+    },
+    {
+      "id": "F2",
+      "rule_id": "INTERP-02",
+      "area": "interpretation",
+      "severity": "Critical",
+      "title": "Conclusion overstates or contradicts analysis",
+      "location": "test_03_stats_comparison.py:31",
+      "what": "The conclusion 'higher biomarker causes worse outcomes' is drawn without a clear 'biomarker' or 'outcome' variable in the t-tests, nor a model linking them causally.",
+      "why": "The script performs t-tests comparing two groups on a 'primary outcome' and then 15 'secondary outcomes'. There is no explicit 'biomarker' variable and 'outcome' variable modeled in a causal manner. The conclusion is not directly supported by the performed statistical comparisons.",
+      "fix_kind": "substantive",
+      "suggestion": "Instead of:\n31| # Conclusion: higher biomarker causes worse outcomes.\nConsider:\n31| # Conclusion: The t-tests showed differences in some secondary outcomes between the synthetic groups, but no direct biomarker-outcome causal model was fit.",
+      "confidence": "high"
+    },
+    {
+      "id": "F3",
+      "rule_id": "DATA-05",
+      "area": "data_handling",
+      "severity": "Important",
+      "title": "SEM misused as a measure of spread for skewed data",
+      "location": "21",
+      "what": "The script reports `mean +/- SEM` for `group_a`, which is generated from an exponential distribution (likely skewed). The standard error of the mean (SEM) is used to describe the spread of the data.",
+      "why": "Exponentially distributed data is typically skewed, making the mean and standard deviation (or SEM) poor descriptors of central tendency and spread. More importantly, the SEM measures the precision of the mean estimate, not the variability of individual observations, and using it as a measure of spread understates the true dispersion of the data.",
+      "fix_kind": "mechanical",
+      "suggestion": "For skewed data, use median and interquartile range (IQR) as measures of central tendency and spread. If mean is desired, report it with the standard deviation (SD) for spread. If reporting precision of the mean, use a confidence interval or clearly label SEM as precision.\n```python\n# Original: print(\"Group A:\", group_a.mean(), \"+/- SEM\", stats.sem(group_a))\n# Fix: print(\"Group A:\", np.median(group_a), \"(IQR \", np.percentile(group_a, 25), \"-\", np.percentile(group_a, 75), \")\")\n# Or, if mean is appropriate and SD is desired for spread:\n# print(\"Group A:\", group_a.mean(), \"+/- SD\", group_a.std())\n```",
+      "confidence": "high"
+    },
+    {
+      "id": "F4",
+      "rule_id": "INTERP-03",
+      "area": "interpretation",
+      "severity": "Important",
+      "title": "Non-significant result interpreted as 'no effect'",
+      "location": "test_03_stats_comparison.py:18",
+      "what": "The script states 'No difference between groups.' if the p-value from the t-test is greater than 0.05.",
+      "why": "A non-significant p-value indicates that there is insufficient evidence to reject the null hypothesis, but it does not equate to evidence of no difference or equivalence between groups. The result is consistent with a range of effects, including meaningful ones.",
+      "fix_kind": "substantive",
+      "suggestion": "Instead of:\n18|     print(\"No difference between groups.\")\nConsider:\n18|     print(\"No statistically significant difference between groups (p > 0.05). Report the estimate and confidence interval to describe plausible effects.\")",
+      "confidence": "high"
+    },
+    {
+      "id": "F5",
+      "rule_id": "INTERP-04",
+      "area": "interpretation",
+      "severity": "Important",
+      "title": "Over-generalization from synthetic data",
+      "location": "test_03_stats_comparison.py:31",
+      "what": "The conclusion 'higher biomarker causes worse outcomes' generalizes from synthetic data to a real-world concept of a 'biomarker' and 'outcomes'.",
+      "why": "The data is entirely synthetic, generated from random distributions. Any findings from such data cannot be generalized to real-world populations, settings, or exposures without explicit justification, which is absent.",
+      "fix_kind": "substantive",
+      "suggestion": "Instead of:\n31| # Conclusion: higher biomarker causes worse outcomes.\nConsider:\n31| # Conclusion: Based on this synthetic data, certain group differences were observed. These findings are illustrative and not generalizable to real-world biomarkers or patient outcomes.",
+      "confidence": "high"
+    },
+    {
+      "id": "F6",
+      "rule_id": "INTERP-05",
+      "area": "interpretation",
+      "severity": "Important",
+      "title": "Statistical significance conflated with practical importance",
+      "location": "test_03_stats_comparison.py:29",
+      "what": "The script only reports 'significant' outcomes based on p < 0.05, without discussing effect size or practical importance.",
+      "why": "Statistical significance (a small p-value) merely indicates that an observed effect is unlikely to be due to chance. It does not inherently imply that the effect is large enough to be clinically, practically, or scientifically meaningful. Especially when multiple tests are run (15 secondary outcomes), some small, practically irrelevant effects might reach statistical significance by chance or due to sample size considerations (though sample sizes here are small).",
+      "fix_kind": "substantive",
+      "suggestion": "Instead of:\n29|         print(f\"Outcome {k}: significant (p={pk:.3f})\")\nConsider:\n29|         print(f\"Outcome {k}: significant (p={pk:.3f}, effect size: {x.mean()-yv.mean():.2f}). Consider practical importance alongside statistical significance.\")",
+      "confidence": "medium"
+    },
+    {
+      "id": "F7",
+      "rule_id": "INTERP-06",
+      "area": "interpretation",
+      "severity": "Important",
+      "title": "Selective reporting of secondary outcomes",
+      "location": "test_03_stats_comparison.py:24-29",
+      "what": "The script iterates through 15 'secondary outcomes' but only prints a message for those that are statistically significant (p < 0.05).",
+      "why": "Reporting only statistically significant or favourable results can bias the overall evidence and inflate false positive rates, as non-significant findings from other analyses are omitted.",
+      "fix_kind": "substantive",
+      "suggestion": "Instead of:\n28|     if pk < 0.05:\n29|         print(f\"Outcome {k}: significant (p={pk:.3f})\")\nConsider:\n28|     print(f\"Outcome {k}: p={pk:.3f} (mean diff: {x.mean()-yv.mean():.2f})\") # Report all outcomes and their estimates/p-values. Clearly label post-hoc or exploratory analyses.",
+      "confidence": "high"
+    },
+    {
+      "id": "F8",
+      "rule_id": "REPRO-01",
+      "area": "reproducibility",
+      "severity": "Important",
+      "title": "Random number generator not seeded",
+      "location": "9, 11-12, 25-26",
+      "what": "The numpy random number generator (`np.random.default_rng()`) is initialized without a seed, and subsequently used to generate synthetic data for both primary and secondary outcomes.",
+      "why": "Without a fixed seed, the random numbers generated will be different each time the script is run. This means the synthetic data, and consequently all statistical results (t-test p-values), will change between runs, making the analysis non-reproducible.",
+      "fix_kind": "mechanical",
+      "suggestion": "Set a fixed random seed when initializing the random number generator.\n```python\n# Original: rng = np.random.default_rng()\n# Fix: rng = np.random.default_rng(42) # Use any integer for the seed\n```",
+      "confidence": "high"
+    },
+    {
+      "id": "F9",
+      "rule_id": "REPRO-06",
+      "area": "reproducibility",
+      "severity": "Important",
+      "title": "Hardcoded secret in source code",
+      "location": "8",
+      "what": "An `API_KEY` is hardcoded directly in the source file as a string literal.",
+      "why": "Committing sensitive information like API keys directly into source code is a security vulnerability, as it can be exposed if the code repository becomes public or is accessed by unauthorized individuals. It also ties the script to a specific, potentially private, credential, making it less portable.",
+      "fix_kind": "mechanical",
+      "suggestion": "Load secrets from environment variables, a configuration file (e.g., `.env`), or a dedicated secrets management system. Remove the literal value from the code.\n```python\n# Original: API_KEY = \"sk-live-...\"\n# Fix: import os\n# API_KEY = os.environ.get(\"MY_API_KEY\")\n```",
+      "confidence": "high"
+    },
+    {
+      "id": "F10",
+      "rule_id": "STAT-01",
+      "area": "statistics",
+      "severity": "Important",
+      "title": "t-test inappropriate for skewed data and small N",
+      "location": "15, 27",
+      "what": "Independent samples t-tests are applied to data generated from an exponential distribution with small sample sizes (9 and 8). Exponential data are inherently skewed.",
+      "why": "The t-test assumes approximate normality of the data (or sampling distribution of the mean, which relies on larger N for skewed data). With small sample sizes and clearly skewed data, this assumption is violated, which can lead to inaccurate p-values and confidence intervals.",
+      "fix_kind": "substantive",
+      "suggestion": "Before: stats.ttest_ind(group_a, group_b)  After: Use a non-parametric test suitable for skewed data, such as the Wilcoxon rank-sum test (e.g., stats.ranksums) or a generalized linear model (GLM) appropriate for exponential distributions.",
+      "confidence": "high"
+    },
+    {
+      "id": "F11",
+      "rule_id": "STAT-03",
+      "area": "statistics",
+      "severity": "Important",
+      "title": "Multiple comparisons not corrected",
+      "location": "24-30",
+      "what": "The script performs 15 secondary t-tests in a loop, each evaluated for significance at the nominal alpha level of 0.05, without any adjustment for multiple comparisons.",
+      "why": "When performing multiple hypothesis tests, the probability of obtaining at least one false positive (Type I error) increases with the number of tests. Without correction, the false discovery rate is inflated.",
+      "fix_kind": "substantive",
+      "suggestion": "Before: if pk < 0.05: print(...)  After: Collect all p-values from the loop and apply a multiple comparison correction (e.g., Bonferroni, Holm, or Benjamini–Hochberg FDR) to the p-values before determining significance, for instance, using `statsmodels.stats.multitest.multipletests`.",
+      "confidence": "high"
+    },
+    {
+      "id": "F12",
+      "rule_id": "STAT-04",
+      "area": "statistics",
+      "severity": "Important",
+      "title": "Effect sizes and confidence intervals not reported",
+      "location": "15-18, 27-29",
+      "what": "For both the primary and secondary outcomes, only p-values are reported, and conclusions are drawn based solely on statistical significance. No effect sizes (e.g., mean differences) or their confidence intervals are presented.",
+      "why": "P-values alone do not convey the magnitude or precision of an effect. The effect size, accompanied by its confidence interval, is essential for interpreting the practical significance and reliability of findings.",
+      "fix_kind": "mechanical",
+      "suggestion": "Before: t, p = stats.ttest_ind(group_a, group_b)  After: Report the mean difference (group_a.mean() - group_b.mean()) and its 95% confidence interval, alongside the t-statistic and p-value. For t-tests, `scipy.stats.ttest_ind` does not directly return the CI for the mean difference, which often requires manual calculation or using packages like `statsmodels`.",
+      "confidence": "high"
+    },
+    {
+      "id": "F13",
+      "rule_id": "REPRO-03",
+      "area": "reproducibility",
+      "severity": "Minor",
+      "title": "Software and package versions not recorded",
+      "location": "5-6",
+      "what": "The script uses external libraries (`numpy`, `scipy`) but does not record their versions or the full software environment.",
+      "why": "Analyses can produce different results or encounter compatibility issues across different versions of scientific computing packages. Without a record of the versions used, it is difficult to precisely reconstruct the environment and reproduce the analysis results in the future.",
+      "fix_kind": "mechanical",
+      "suggestion": "Record the versions of key packages, for example by generating a `requirements.txt` file (`pip freeze > requirements.txt`) or printing `pip show numpy scipy`.",
+      "confidence": "medium"
+    },
+    {
+      "id": "F14",
+      "rule_id": "DESIGN-05",
+      "area": "study_design",
+      "severity": "Minor",
+      "title": "Small sample, non-significance misinterpreted as no effect",
+      "location": "11-12, 18",
+      "what": "The script uses small sample sizes (9 and 8) for comparisons and interprets a non-significant p-value ('p > 0.05') as 'No difference between groups.'",
+      "why": "Underpowered studies yield unreliable estimates. Interpreting a non-significant result as definitive evidence of 'no effect' is a common error; it merely means there wasn't enough evidence to reject the null hypothesis, possibly due to low power.",
+      "fix_kind": "substantive",
+      "suggestion": "Before: if p > 0.05: print(\"No difference between groups.\")  After: Report the effect size and its confidence interval; avoid interpreting non-significance as an absence of effect, especially with small samples.",
+      "confidence": "high"
+    }
+  ],
+  "scope_violations_dropped": 0
+}

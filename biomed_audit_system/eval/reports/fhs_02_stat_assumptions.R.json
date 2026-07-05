@@ -1,0 +1,136 @@
+{
+  "language": "r",
+  "analysis_types": [
+    "classical statistics (test / regression)"
+  ],
+  "checkers_run": [
+    "repro_coding",
+    "stats_design",
+    "interpretation"
+  ],
+  "counts": {
+    "Critical": 0,
+    "Important": 6,
+    "Minor": 3
+  },
+  "findings": [
+    {
+      "id": "F1",
+      "rule_id": "DATA-05",
+      "area": "data_handling",
+      "severity": "Important",
+      "title": "Standard error of the mean (SEM) misused for spread",
+      "location": "11-12",
+      "what": "The script reports 'Smokers SBP: X +/- Y' where Y is the standard error of the mean (`se_s`, `se_ns`).",
+      "why": "The standard error of the mean measures the precision of the mean estimate, not the variability or spread of the individual observations. Using SEM as a measure of spread understates the true dispersion of the data and can be misleading.",
+      "fix_kind": "mechanical",
+      "suggestion": "Use the standard deviation (SD) to describe the spread of the data, and reserve SEM or confidence intervals for indicating the precision of an estimate, clearly labelled. For example:\n```r\nsd_s  <- sd(fhs$SBP[fhs$smoke == 1])\nsd_ns <- sd(fhs$SBP[fhs$smoke == 0])\ncat(\"Smokers SBP:   \", round(m_s, 1),  \" +/-\", round(sd_s, 2),  \" (SD)\\n\")\ncat(\"Nonsmokers SBP:\", round(m_ns, 1), \" +/-\", round(sd_ns, 2), \" (SD)\\n\")\n```",
+      "confidence": "high"
+    },
+    {
+      "id": "F2",
+      "rule_id": "INTERP-05",
+      "area": "interpretation",
+      "severity": "Important",
+      "title": "Statistical significance conflated with practical importance",
+      "location": "18",
+      "what": "The conclusion states \"Smoking status is significantly associated with SBP\" based solely on the p-value, without discussing the magnitude of the effect or its practical/clinical importance.",
+      "why": "With large samples, trivial effects can reach significance; significance does not imply clinical or practical relevance.",
+      "fix_kind": "substantive",
+      "suggestion": "Before: cat(\"Smoking status is significantly associated with SBP.\\n\") After: cat(paste0(\"Smoking status is significantly associated with SBP (mean difference = \", round(tt$estimate[1] - tt$estimate[2], 1), \", 95% CI \", paste(round(tt$conf.int, 1), collapse = \" to \"), \"), indicating a potentially meaningful clinical difference.\")) Rationale: Interpret the effect size against a domain-relevant threshold, not the p-value alone.",
+      "confidence": "high"
+    },
+    {
+      "id": "F3",
+      "rule_id": "INTERP-06",
+      "area": "interpretation",
+      "severity": "Important",
+      "title": "Selective reporting of interpretive conclusions",
+      "location": "17-19",
+      "what": "An interpretive statement about the association between smoking status and SBP is only printed if the p-value is less than 0.05. If the result is not statistically significant, no interpretive statement is made.",
+      "why": "Reporting only favourable results biases the evidence and inflates false positives. All relevant analyses and outcomes should be reported.",
+      "fix_kind": "substantive",
+      "suggestion": "Before: if (tt$p.value < 0.05) { cat(\"Smoking status is significantly associated with SBP.\\n\") } After: cat(paste0(\"Smoking status is \", if (tt$p.value < 0.05) \"significantly\" else \"not significantly\", \" associated with SBP (p-value = \", round(tt$p.value, 4), \").\\n\")) Rationale: Report all pre-specified analyses and outcomes; do not only report significant findings.",
+      "confidence": "high"
+    },
+    {
+      "id": "F4",
+      "rule_id": "STAT-02",
+      "area": "statistics",
+      "severity": "Important",
+      "title": "Equal variance assumption not checked for pooled t-test",
+      "location": "N|15",
+      "what": "The `t.test` is performed with `var.equal = TRUE`, explicitly assuming equal variances between the smoking and non-smoking groups for SBP, but no check (e.g., Levene's test or `var.test()`) is conducted to verify this assumption.",
+      "why": "The pooled t-test's inference (p-value, confidence interval) is only valid if the equal variance assumption holds. If variances differ, the Type I error rate can be inflated or deflated. Welch's t-test, which does not assume equal variances, is often a safer default.",
+      "fix_kind": "mechanical",
+      "suggestion": "Before: tt <- t.test(SBP ~ smoke, data = fhs, var.equal = TRUE)\nAfter: # Check variance: var.test(SBP ~ smoke, data = fhs) or leveneTest(SBP ~ smoke, data = fhs) \ntt <- t.test(SBP ~ smoke, data = fhs, var.equal = FALSE) # Use Welch's t-test as default, or pooled if justified.\nRationale: Either verify the assumption or use Welch's t-test which is robust to unequal variances.",
+      "confidence": "high"
+    },
+    {
+      "id": "F5",
+      "rule_id": "STAT-04",
+      "area": "statistics",
+      "severity": "Important",
+      "title": "Effect size and confidence interval not explicitly reported for t-test",
+      "location": "N|16-19",
+      "what": "The script reports only the p-value and a binary significance verdict from the t-test, without explicitly reporting the estimated difference in means or its 95% confidence interval.",
+      "why": "A p-value alone indicates statistical significance but provides no information about the magnitude or precision of the observed effect. The effect size with its confidence interval is crucial for interpreting the practical significance and reliability of the finding.",
+      "fix_kind": "mechanical",
+      "suggestion": "Before: cat(\"p-value =\", round(tt$p.value, 4), \"\\n\")\nAfter: cat(\"Difference in means (95% CI): \", round(tt$estimate[2] - tt$estimate[1], 2), \" (\", round(tt$conf.int[1], 2), \", \", round(tt$conf.int[2], 2), \")\\n\")\ncat(\"p-value =\", round(tt$p.value, 4), \"\\n\")\nRationale: Always report effect sizes and their confidence intervals alongside p-values to provide complete inferential information.",
+      "confidence": "high"
+    },
+    {
+      "id": "F6",
+      "rule_id": "DESIGN-01",
+      "area": "study_design",
+      "severity": "Important",
+      "title": "Confounder not adjusted in crude analysis",
+      "location": "N|15",
+      "what": "The two-sample t-test assesses the crude association between smoking status and SBP, but does not adjust for known confounders like age, which is commonly available in FHS datasets and relates to both smoking and SBP.",
+      "why": "Omitting a confounder biases the estimated association between exposure and outcome. The crude estimate can overstate, understate, or reverse the adjusted one, leading to misleading conclusions about the direct effect of smoking.",
+      "fix_kind": "substantive",
+      "suggestion": "Before: tt <- t.test(SBP ~ smoke, data = fhs, var.equal = TRUE)\nAfter: fit <- lm(SBP ~ smoke + Age, data = fhs) # Or other relevant confounders; compare crude vs adjusted estimates.\nRationale: Include relevant confounders in the model to obtain a less biased estimate of the association.",
+      "confidence": "medium"
+    },
+    {
+      "id": "F7",
+      "rule_id": "DATA-01",
+      "area": "data_handling",
+      "severity": "Minor",
+      "title": "Data not inspected before analysis",
+      "location": "2",
+      "what": "The script loads 'fhs_2026Spring.csv' but does not perform any initial inspection (e.g., `str()`, `summary()`, `head()`, `dim()`) to understand its structure, types, or value ranges.",
+      "why": "Unexamined data can hide type errors (e.g., SBP or CIG being read as character), impossible values, or structural issues that could change the correct analysis or lead to errors downstream. For instance, `fhs$CIG > 0` assumes `CIG` is numeric, and `mean(fhs$SBP)` assumes `SBP` is numeric and within a reasonable range.",
+      "fix_kind": "mechanical",
+      "suggestion": "Add inspection steps immediately after loading the data to verify its integrity. For example:\n```r\nfhs <- read.csv(\"fhs_2026Spring.csv\")\nstr(fhs)\nsummary(fhs)\nhead(fhs)\n```",
+      "confidence": "high"
+    },
+    {
+      "id": "F8",
+      "rule_id": "INTERP-04",
+      "area": "interpretation",
+      "severity": "Minor",
+      "title": "Conclusion not explicitly limited to studied sample",
+      "location": "18",
+      "what": "The conclusion \"Smoking status is significantly associated with SBP.\" does not explicitly restrict its claim to the studied sample or population from which it was drawn (FHS cohort).",
+      "why": "External validity is not guaranteed by an in-sample result; claims should be restricted or justified.",
+      "fix_kind": "substantive",
+      "suggestion": "Before: \"Smoking status is significantly associated with SBP.\" After: \"In this FHS cohort, smoking status is significantly associated with SBP.\" Rationale: Restrict claims to the studied sample/population, or justify transportability explicitly.",
+      "confidence": "medium"
+    },
+    {
+      "id": "F9",
+      "rule_id": "REPRO-05",
+      "area": "reproducibility",
+      "severity": "Minor",
+      "title": "Silent data mutation",
+      "location": "3",
+      "what": "The original `fhs` dataframe is modified in place by adding a new column `smoke` (`fhs$smoke <- ...`).",
+      "why": "Overwriting the raw data object or modifying it in place without creating new, descriptively named objects makes it harder to audit the transformation history, understand the data at various stages, and reproduce results or debug issues if an intermediate step is flawed.",
+      "fix_kind": "mechanical",
+      "suggestion": "Keep the raw data immutable and create a new object for transformed data. For example:\n```r\nfhs_processed <- fhs\nfhs_processed$smoke <- ifelse(fhs_processed$CIG > 0, 1, 0)\n# Continue analysis with fhs_processed\n```",
+      "confidence": "medium"
+    }
+  ],
+  "scope_violations_dropped": 0
+}

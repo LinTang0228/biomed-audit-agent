@@ -1,0 +1,123 @@
+{
+  "language": "r",
+  "analysis_types": [
+    "classical statistics (test / regression)"
+  ],
+  "checkers_run": [
+    "repro_coding",
+    "stats_design",
+    "interpretation"
+  ],
+  "counts": {
+    "Critical": 1,
+    "Important": 4,
+    "Minor": 3
+  },
+  "findings": [
+    {
+      "id": "F1",
+      "rule_id": "STAT-03",
+      "area": "statistics",
+      "severity": "Critical",
+      "title": "Multiple comparison correction missing",
+      "location": "11-14, 16",
+      "what": "2000 separate t-tests are performed (one per gene), and 'hits' are declared based on an unadjusted p-value threshold of 0.05.",
+      "why": "Without correction for multiple comparisons, the expected number of false positives (genes declared significant by chance) increases dramatically with the number of tests. With 2000 tests at α=0.05, one would expect 100 false positives by chance alone.",
+      "fix_kind": "mechanical",
+      "suggestion": "Before: hits <- which(pvals < 0.05)\nAfter: hits <- which(p.adjust(pvals, method = \"BH\") < 0.05) # Use Benjamini-Hochberg (FDR) or another appropriate method like Bonferroni for FWER control. Apply `p.adjust()` to the vector of p-values.",
+      "confidence": "high"
+    },
+    {
+      "id": "F2",
+      "rule_id": "INTERP-05",
+      "area": "interpretation",
+      "severity": "Important",
+      "title": "Statistical significance without practical importance",
+      "location": "N| 17",
+      "what": "The script identifies 'hits' as genes with p < 0.05 and reports their count, without discussing the magnitude or practical importance of these differences.",
+      "why": "With large sample sizes (even in simulated data), trivial effects can reach statistical significance. Statistical significance alone does not imply clinical, biological, or practical relevance. Reporting only p-values can lead to misinterpretation of findings.",
+      "fix_kind": "substantive",
+      "suggestion": "Before: cat(length(hits), \"genes with p < 0.05\\n\")\nAfter: # Consider reporting effect sizes (e.g., mean differences, fold changes) and their confidence intervals alongside p-values to provide context on practical importance.",
+      "confidence": "high"
+    },
+    {
+      "id": "F3",
+      "rule_id": "REPRO-01",
+      "area": "reproducibility",
+      "severity": "Important",
+      "title": "Random seed not set for stochastic steps",
+      "location": "4, 8",
+      "what": "The `rpois()` function (line 4) for data generation and `sample()` function (line 8) for subsampling are stochastic but lack an explicit `set.seed()` call.",
+      "why": "Results (data generation, sample selection) will change between runs, making the analysis non-reproducible.",
+      "fix_kind": "mechanical",
+      "suggestion": "Add `set.seed(123)` (or any fixed integer) at the beginning of the script to ensure reproducibility of all random operations. Example: `set.seed(42)` at line 3.",
+      "confidence": "high"
+    },
+    {
+      "id": "F4",
+      "rule_id": "STAT-01",
+      "area": "statistics",
+      "severity": "Important",
+      "title": "T-test inappropriate for count data",
+      "location": "12-14",
+      "what": "A `t.test` is applied to `counts`, which are generated as Poisson-distributed count data, with a small sample size (n=5 per group).",
+      "why": "The t-test assumes approximate normality of the data, which is typically not met by raw count data, especially with small sample sizes. Violating this assumption can lead to incorrect p-values and confidence intervals, making the inference unreliable.",
+      "fix_kind": "substantive",
+      "suggestion": "Before: t.test(g[condition == \"ctrl\"], g[condition == \"treat\"])$p.value\nAfter: Use methods designed for count data, such as Poisson or negative binomial regression (e.g., `glm.nb` from `MASS` package) or specialized packages for differential expression analysis (e.g., `edgeR`, `DESeq2`).",
+      "confidence": "high"
+    },
+    {
+      "id": "F5",
+      "rule_id": "STAT-04",
+      "area": "statistics",
+      "severity": "Important",
+      "title": "Effect size and confidence interval not reported",
+      "location": "16-17",
+      "what": "The script only reports the count of 'significant' genes (p < 0.05). It does not extract or report effect sizes (e.g., difference in means) or their confidence intervals for these 'hits'.",
+      "why": "A p-value alone indicates statistical significance but provides no information about the magnitude or precision of the observed effect. Effect sizes with confidence intervals are crucial for interpreting the practical importance and reliability of the findings.",
+      "fix_kind": "mechanical",
+      "suggestion": "Before: cat(length(hits), \"genes with p < 0.05\\n\")\nAfter: Store full `t.test` results. For significant genes, extract and report the estimated difference in means and its 95% confidence interval alongside the p-value. For example, `res <- t.test(g[condition == \"ctrl\"], g[condition == \"treat\"])`, then extract `res$estimate` and `res$conf.int`.",
+      "confidence": "high"
+    },
+    {
+      "id": "F6",
+      "rule_id": "REPRO-03",
+      "area": "reproducibility",
+      "severity": "Minor",
+      "title": "Software and package versions not recorded",
+      "location": "file",
+      "what": "The script does not record the R version and package versions used (e.g., via `sessionInfo()`).",
+      "why": "Analyses can subtly change across different versions of R or its packages, making it difficult to reproduce the exact computational environment later.",
+      "fix_kind": "mechanical",
+      "suggestion": "Add `sessionInfo()` at the end of the script to record the environment. Example: `sessionInfo()` at line 20.",
+      "confidence": "medium"
+    },
+    {
+      "id": "F7",
+      "rule_id": "REPRO-04",
+      "area": "reproducibility",
+      "severity": "Minor",
+      "title": "Fragile language construct: `T` used for `TRUE`",
+      "location": "19",
+      "what": "The literal `T` is used instead of `TRUE`.",
+      "why": "`T` is a variable that can be reassigned (e.g. `T = FALSE`), which can silently change the behaviour of the script. `TRUE` is a reserved keyword and is safe.",
+      "fix_kind": "mechanical",
+      "suggestion": "Replace `T` with `TRUE`. Example: `done <- TRUE`.",
+      "confidence": "high"
+    },
+    {
+      "id": "F8",
+      "rule_id": "DESIGN-05",
+      "area": "study_design",
+      "severity": "Minor",
+      "title": "Small sample size per group",
+      "location": "5, 16-17",
+      "what": "The analysis compares 'ctrl' (n=5) vs 'treat' (n=5) groups. A non-significant result in such a small sample is interpreted as absence of an effect (implicitly by selecting only 'hits' below 0.05).",
+      "why": "Underpowered studies yield unreliable estimates. While a null result is not explicitly interpreted as 'no effect', relying solely on p-values from very small samples can be misleading. Small sample sizes make it difficult to detect true effects and lead to imprecise estimates.",
+      "fix_kind": "substantive",
+      "suggestion": "Before: cat(length(hits), \"genes with p < 0.05\\n\")\nAfter: Consider justifying the sample size a priori or discuss the limitations regarding power and precision when interpreting results from small samples. Report effect sizes and confidence intervals to convey uncertainty.",
+      "confidence": "high"
+    }
+  ],
+  "scope_violations_dropped": 0
+}

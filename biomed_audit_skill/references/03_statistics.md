@@ -47,9 +47,16 @@ results are in Area 6.)
   Storey q-values under dependence) at the correct family scope.
 
 **STAT-04 — Effect size and/or confidence interval not reported**
-- Look for: results given as a p-value or "significant/not" only; an odds ratio,
-  relative risk, or hazard ratio reported as a point value with no confidence
-  interval; a test statistic without the estimate it concerns.
+- Look for: the script's reported output is limited to a p-value or a
+  "significant/not" verdict with no accompanying estimate; or an odds ratio,
+  relative risk, hazard ratio, or coefficient is presented as a bare point value
+  with no interval.
+- Report only when: an inferential result is actually reported and lacks any
+  effect size or interval. Do NOT raise this when the script calls a summary that
+  already reports standard errors or intervals (e.g. R's `summary()` on an
+  `lm`/`glm`, `confint()`, or a `statsmodels` `.summary()`), since the interval is
+  then available in the output; and do not raise it when an effect size or CI is
+  already present.
 - Why: statistical significance says nothing about magnitude or precision; the
   effect size with its interval is what supports interpretation.
 - Severity: Important.

@@ -1,0 +1,33 @@
+{
+  "language": "python",
+  "analysis_types": [
+    "machine learning / prediction"
+  ],
+  "checkers_run": [
+    "repro_coding",
+    "stats_design",
+    "interpretation",
+    "leakage"
+  ],
+  "counts": {
+    "Critical": 0,
+    "Important": 0,
+    "Minor": 1
+  },
+  "findings": [
+    {
+      "id": "F1",
+      "rule_id": "REPRO-03",
+      "area": "reproducibility",
+      "severity": "Minor",
+      "title": "Software and package versions not recorded",
+      "location": "N/A",
+      "what": "The script depends on numpy, pandas, and scikit-learn, but does not record their versions or the full environment.",
+      "why": "Analyses can change across package versions; without a version record, the environment cannot be reconstructed, making results non-reproducible.",
+      "fix_kind": "mechanical",
+      "suggestion": "Record the versions of key packages (e.g., in a requirements.txt file or by printing `pip freeze` or `conda list`).\n\n- Via pip: `pip freeze > requirements.txt`\n- Via conda: `conda env export > environment.yml`",
+      "confidence": "high"
+    }
+  ],
+  "scope_violations_dropped": 0
+}

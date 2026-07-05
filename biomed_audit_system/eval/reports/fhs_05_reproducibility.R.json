@@ -1,0 +1,97 @@
+{
+  "language": "r",
+  "analysis_types": [
+    "classical statistics (test / regression)"
+  ],
+  "checkers_run": [
+    "repro_coding",
+    "stats_design",
+    "interpretation"
+  ],
+  "counts": {
+    "Critical": 0,
+    "Important": 5,
+    "Minor": 1
+  },
+  "findings": [
+    {
+      "id": "F1",
+      "rule_id": "INTERP-01",
+      "area": "interpretation",
+      "severity": "Important",
+      "title": "Potential for causal language from observational data",
+      "location": "10| tmp <- lm(SBP ~ smoke + Age, data = df2)",
+      "what": "The script fits a linear model (lm) to examine the relationship between SBP and smoking status, controlling for Age, using data implied to be from an observational study (fhs_2026Spring.csv, likely Framingham Heart Study). While the script itself does not state a conclusion, this type of analysis in a biomedical context often leads to interpretations using causal language.",
+      "why": "Observational data, such as that typically found in cohort studies like Framingham, can only establish associations, not causation. Causal claims from such analyses can be misleading due to potential confounding and lack of experimental control.",
+      "fix_kind": "substantive",
+      "suggestion": "If reporting on these results, ensure that conclusions are strictly phrased in associational terms (e.g., 'Smoking is associated with higher SBP') rather than causal terms (e.g., 'Smoking causes higher SBP'). Explicitly acknowledge the observational nature of the data and the limitations this imposes on causal inference.",
+      "confidence": "medium"
+    },
+    {
+      "id": "F2",
+      "rule_id": "REPRO-01",
+      "area": "reproducibility",
+      "severity": "Important",
+      "title": "Random seed not set for stochastic steps",
+      "location": "5",
+      "what": "The `sample()` function is used to create a random subset of the data without setting a random seed.",
+      "why": "This makes the results (specifically, the composition of `df2` and any subsequent analysis) change between runs, preventing exact reproducibility of the script.",
+      "fix_kind": "mechanical",
+      "suggestion": "Add `set.seed()` before any stochastic operations. E.g., `set.seed(123) # for reproducibility\ndf2 <- df[sample(nrow(df), 800), ]`",
+      "confidence": "high"
+    },
+    {
+      "id": "F3",
+      "rule_id": "REPRO-02",
+      "area": "reproducibility",
+      "severity": "Important",
+      "title": "Non-portable file paths",
+      "location": "1, 2",
+      "what": "The script uses absolute, user-specific file paths for `setwd()` and `read.csv()`.",
+      "why": "Absolute paths make the script non-portable, as it will break when run on any other machine or by a different user.",
+      "fix_kind": "mechanical",
+      "suggestion": "Use relative paths or a package like `here::here()` for robust path management. E.g., `setwd(here::here())` and `df <- read.csv(here::here('data', 'fhs_2026Spring.csv'))`",
+      "confidence": "high"
+    },
+    {
+      "id": "F4",
+      "rule_id": "STAT-02",
+      "area": "statistics",
+      "severity": "Important",
+      "title": "Linear model assumptions not checked",
+      "location": "N| 10",
+      "what": "Assumptions for the linear regression model (e.g., linearity, homoscedasticity of residuals, normality of residuals) are not checked after fitting the model.",
+      "why": "Inference from a linear model is only valid if its underlying assumptions hold. Unchecked violations can lead to incorrect p-values and confidence intervals.",
+      "fix_kind": "mechanical",
+      "suggestion": "Before: summary(tmp) After: plot(tmp) # Check residual plots; consider formal tests if needed. Then address any violations, e.g., transformations or robust standard errors.",
+      "confidence": "high"
+    },
+    {
+      "id": "F5",
+      "rule_id": "DESIGN-01",
+      "area": "study_design",
+      "severity": "Important",
+      "title": "Confounder not adjusted for in crude analysis",
+      "location": "N| 9",
+      "what": "A t-test for the association between SBP and smoking status is performed without adjusting for age, which is a known confounder and available in the dataset.",
+      "why": "Omitting a confounder biases the estimated association; the crude estimate can overstate, understate, or reverse the adjusted one. While an adjusted model is later performed, the crude t-test result is computed.",
+      "fix_kind": "substantive",
+      "suggestion": "Before: tt <- t.test(SBP ~ smoke, data = df2, var.equal = F) After: Ensure that age is accounted for in all primary analyses of the SBP-smoke association, or compare and discuss crude vs. adjusted estimates.",
+      "confidence": "high"
+    },
+    {
+      "id": "F6",
+      "rule_id": "REPRO-04",
+      "area": "reproducibility",
+      "severity": "Minor",
+      "title": "Fragile language constructs (T/F)",
+      "location": "9, 13",
+      "what": "The script uses `F` and `T` instead of the reserved keywords `FALSE` and `TRUE`.",
+      "why": "In R, `T` and `F` are ordinary variables that can be reassigned (e.g., `T <- 5`), which could silently change the behavior of the script in unexpected ways. `TRUE` and `FALSE` are reserved and safe.",
+      "fix_kind": "mechanical",
+      "suggestion": "Use `FALSE` and `TRUE` instead. E.g., `tt <- t.test(SBP ~ smoke, data = df2, var.equal = FALSE)` and `done <- TRUE`",
+      "confidence": "high"
+    }
+  ],
+  "scope_violations_dropped": 0
+}

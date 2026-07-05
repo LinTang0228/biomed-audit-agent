@@ -1,0 +1,32 @@
+{
+  "language": "r",
+  "analysis_types": [
+    "classical statistics (test / regression)"
+  ],
+  "checkers_run": [
+    "repro_coding",
+    "stats_design",
+    "interpretation"
+  ],
+  "counts": {
+    "Critical": 0,
+    "Important": 1,
+    "Minor": 0
+  },
+  "findings": [
+    {
+      "id": "F1",
+      "rule_id": "STAT-02",
+      "area": "statistics",
+      "severity": "Important",
+      "title": "Linear model assumptions not fully checked",
+      "location": "N|58, N|67",
+      "what": "The script fits linear regression models (m1 and m2) but does not perform checks for key assumptions like homoscedasticity (constant variance of residuals) or linearity using residual diagnostics. This is particularly relevant given that the variance test for SBP between smoking groups (line 40) rejected the equal variance assumption (p ~ 0.011), indicating potential heteroscedasticity.",
+      "why": "Linear regression models rely on assumptions such as homoscedasticity and linearity of the relationship between predictors and the outcome (or appropriate transformations). If these assumptions are violated, the standard errors and p-values derived from the model can be inaccurate, leading to potentially invalid inferences, even if coefficient estimates remain unbiased.",
+      "fix_kind": "substantive",
+      "suggestion": "Check residual plots for linear models (e.g., plot(m1), plot(m2)) to assess homoscedasticity and linearity. If violations are present, consider using robust standard errors (e.g., `vcovHC` from the `sandwich` package) or alternative modeling approaches like generalized least squares.",
+      "confidence": "medium"
+    }
+  ],
+  "scope_violations_dropped": 0
+}

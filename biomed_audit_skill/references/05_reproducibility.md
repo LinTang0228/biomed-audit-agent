@@ -28,6 +28,11 @@ languages; language-specific notes are marked.
 **REPRO-03 — Software and package versions not recorded**
 - Look for: no `sessionInfo()` (R) / no `requirements.txt`, `environment.yml`,
   `renv.lock`, or printed versions.
+- Report only when: the script depends on third-party packages whose behaviour can
+  differ across versions (e.g. statistical, ML, or bioinformatics libraries), so
+  that the missing version record is a concrete reproducibility risk. Do NOT raise
+  it for base-language scripts with no such dependencies, or as a generic reminder.
+  Raise at most once per script, at the lowest priority.
 - Why: analyses can change across package versions; without a version record the
   environment cannot be reconstructed.
 - Severity: Minor.
